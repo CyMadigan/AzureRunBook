@@ -29,29 +29,21 @@
 
 workflow Connect-Azure
 {
-    Param
-    (   
-        [Parameter(Mandatory=$true)]
-        [String]
-        $AzureConnectionName       
-    )
+   # By default, errors in PowerShell do not cause workflows to suspend, like exceptions do.
+	# This means a runbook can still reach 'completed' state, even if it encounters errors
+	# during execution. The below command will cause all errors in the runbook to be thrown as
+	# exceptions, therefore causing the runbook to suspend when an error is hit.
+	$ErrorActionPreference = "Stop"
+	
+	# Grab the credential to use to authenticate to Azure. 
+	# TODO: Fill in the -Name parameter with the name of the Automation PSCredential asset
+	# that has access to your Azure subscription
+	$Cred = Get-AutomationPSCredential -Name "kevraj@microsoft.com"
 
-	Write-Warning -Message "WARNING: This runbook is deprecated. Please use OrgID credential auth to connect to Azure, instead of certificate auth using this runbook. You can learn more about using credential auth with Azure here: http://aka.ms/Sspv1l"
-    
-    # Get the Azure connection asset that is stored in the Auotmation service based on the name that was passed into the runbook 
-    $AzureConn = Get-AutomationConnection -Name $AzureConnectionName
-    if ($AzureConn -eq $null)
-    {
-        throw "Could not retrieve '$AzureConnectionName' connection asset. Check that you created this first in the Automation service."
-    }
+	# Connect to Azure
+	Add-AzureAccount -Credential $Cred | Write-Verbose
 
-    # Get the Azure management certificate that is used to connect to this subscription
-    $Certificate = Get-AutomationCertificate -Name $AzureConn.AutomationCertificateName
-    if ($Certificate -eq $null)
-    {
-        throw "Could not retrieve '$AzureConn.AutomationCertificateName' certificate asset. Check that you created this first in the Automation service."
-    }
-
-    # Set the Azure subscription configuration
-    Set-AzureSubscription -SubscriptionName $AzureConnectionName -SubscriptionId $AzureConn.SubscriptionID -Certificate $Certificate
+	# Select the Azure subscription you want to work against
+	# TODO: Fill in the -SubscriptionName parameter with the name of your Azure subscription
+	Select-AzureSubscription -SubscriptionName "Visual Studio Ultimate with MSDN" | Write-Verbose
 }
